@@ -24,6 +24,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float lastX, lastY, lastZ;
     private TextView movementTextView;
 
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
