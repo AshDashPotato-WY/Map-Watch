@@ -111,8 +111,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private void displayMovement(String movement) throws InterruptedException {
 
-//        String serverIP = "192.168.1.27"; // Replace with the IP address of your Android device
-//        int serverPort = 9876; // The port should match the server's listening port
 
         movementTextView.setText(movement);
 
@@ -123,23 +121,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             findConnectedNodeAndSendMessage(message); // send message via bluetooth
 
 
-//            updclient Udpclient = new updclient(message);
-//
-//            Udpclient.start();
-//
-//            Udpclient.join();
-
         } else{
 
 
             String message = "100"; // This is the padding value that you want to send
             findConnectedNodeAndSendMessage(message); // send message via bluetooth
 
-//            updclient Udpclient = new updclient(message);
-//
-//            Udpclient.start();
-//
-//            Udpclient.join();
 
         }
 
