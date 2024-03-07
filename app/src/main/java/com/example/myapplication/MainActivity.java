@@ -1,6 +1,7 @@
 package com.example.myapplication;
 
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -10,6 +11,8 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.speech.SpeechRecognizer;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -26,8 +29,6 @@ public class MainActivity extends AppCompatActivity {
 
     private float lastX, lastY, lastZ;
     private TextView movementTextView;
-    private SpeechRecognizer speechRecognizer;
-    private String voiceCommand = "";
 
     private long lastGestureTime = 0;
     private static final long GESTURE_DEBOUNCE_MS = 500;
@@ -42,20 +43,44 @@ public class MainActivity extends AppCompatActivity {
 
     long startTime = System.nanoTime();
 
+    private boolean isButtonStart = false; // click button once or twice
+    private Button startButton;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         movementTextView = findViewById(R.id.movementTextView);
+        startButton = findViewById(R.id.startButton);
+        // click button to start recording sensor data and click again to stop
+        startButton.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("SetTextI18n")
+            public void onClick(View v) {
+                if (isButtonStart) {
+                    Log.d("BUTTONS", "User tapped the button: stop");
+                    // To Do: stop recording
+                    sensorManager.unregisterListener(accelerometerListener);
+                    startButton.setText("Start");
+                }
+                else {
+                    Log.d("BUTTONS", "User tapped the button: start");
+                    // start recording
+                    sensorManager.registerListener(accelerometerListener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+                    startButton.setText("Stop");
+                }
+                isButtonStart = !isButtonStart;
+            }
+        });
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        // gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         sensorManager.registerListener(accelerometerListener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        sensorManager.registerListener(gyroscopeListener, gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
+        // sensorManager.registerListener(gyroscopeListener, gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
 
-
+        // write sensor data in a file then export it later for testing purpose
         createFileForData();
 
     }
@@ -64,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         sensorManager.registerListener(accelerometerListener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        sensorManager.registerListener(gyroscopeListener, gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
+        // sensorManager.registerListener(gyroscopeListener, gyroscope, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     @Override
@@ -77,15 +102,14 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        try {
-            if (gyroWriter != null) {
-                gyroWriter.flush(); // Flush data when the app is paused
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+
+        // pause the activity
+        if (isButtonStart) {
+            sensorManager.unregisterListener(accelerometerListener);
+            isButtonStart = false;
         }
-        sensorManager.unregisterListener(accelerometerListener);
-        sensorManager.unregisterListener(gyroscopeListener);
+
+//        sensorManager.unregisterListener(gyroscopeListener);
 //        startVoiceRecognition();
     }
 
@@ -93,16 +117,17 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         flushAndCloseWriter(acceWriter);
-        flushAndCloseWriter(gyroWriter);
+//        flushAndCloseWriter(gyroWriter);
     }
+
 
     private void createFileForData() {
         acceFile = createFile("acceData.txt");
-        gyroFile = createFile("gyroData.txt");
+//        gyroFile = createFile("gyroData.txt");
 
         try {
             acceWriter = new FileWriter(acceFile, false); // false to overwrite
-            gyroWriter = new FileWriter(gyroFile, false); // false to overwrite
+//            gyroWriter = new FileWriter(gyroFile, false); // false to overwrite
         } catch (IOException e) {
             Log.e("ERROR", "File writer creation error", e);
         }
@@ -140,66 +165,71 @@ public class MainActivity extends AppCompatActivity {
     SensorEventListener accelerometerListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
-            float x = event.values[0];
-            float y = event.values[1];
-            float z = event.values[2];
+            if (isButtonStart) {
+                float x = event.values[0];
+                float y = event.values[1];
+                float z = event.values[2];
 
-            float deltaX = lastX - x;
-            float deltaY = lastY - y;
+                float deltaX = lastX - x;
+                float deltaY = lastY - y;
 
-            if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                if (Math.abs(deltaX) > 5) {
-                    if (deltaX < 0) {
-                        try {
-                            displayMovement("Forward");
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
+                if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                    if (Math.abs(deltaX) > 5) {
+                        if (deltaX < 0) {
+                            try {
+                                displayMovement("Forward");
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
+                        } else if (deltaX >= 0) {
+                            try {
+                                displayMovement("Backward");
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
                         }
-                    } else if (deltaX >= 0) {
-                        try {
-                            displayMovement("Backward");
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
+                    }
+                } else {
+                    if (Math.abs(deltaY) > 5) {
+                        if (deltaY < 0) {
+                            try {
+                                displayMovement("DOWN");
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
+                        } else {
+                            try {
+                                displayMovement("UP");
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
                         }
                     }
                 }
-            } else {
-                if (Math.abs(deltaY) > 5) {
-                    if (deltaY < 0) {
-                        try {
-                            displayMovement("DOWN");
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
-                    } else {
-                        try {
-                            displayMovement("UP");
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                }
-            }
 
-            lastX = x;
-            lastY = y;
-            lastZ = z;
+                lastX = x;
+                lastY = y;
+                lastZ = z;
 
-            // write data to file
-            long timeDuration = (System.nanoTime() - startTime) / 1000000;
-            try {
-                if (acceWriter != null) {
-                    String data = x + " " + y + " " + z + " " + timeDuration + "\n";
-                    Log.d("Accelerometer Sensor", data);
-                    acceWriter.append(data);
-                    // fileWriter.flush(); // ensure data is written to the file
+                // write data to file
+                long currentTimeMillis = System.currentTimeMillis();
+                long timeDuration = currentTimeMillis - lastGestureTime;
+                try {
+                    if (acceWriter != null && lastGestureTime != 0) {
+                        String data = x + " " + y + " " + z + " " + timeDuration + "\n";
+                        Log.d("Accelerometer Sensor", data);
+                        acceWriter.append(data);
+                        // fileWriter.flush(); // ensure data is written to the file
 //                String time = "Time Duration: " + timeDuration + "\n\n";
 //                System.out.print(time);
 //                fileWriter.write(time);
 //                fileWriter.flush();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
+
+                lastGestureTime = currentTimeMillis;
             }
         }
 
@@ -209,116 +239,9 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    // Gyroscope sensor
-    SensorEventListener gyroscopeListener = new SensorEventListener() {
-        @Override
-        public void onSensorChanged(SensorEvent event) {
-            // event.values contain the rate of rotation around the x, y, and z axis.
-            float x = event.values[0]; // Angular speed around x-axis
-            float y = event.values[1]; // Angular speed around y-axis
-            float z = event.values[2]; // Angular speed around z-axis
-
-            // print out in a gyroscopeData.txt
-            long timeDuration = (System.nanoTime() - startTime) / 1000000;
-            try {
-                if (gyroWriter != null) {
-                    String data = x + " " + y + " " + z + " " + timeDuration+ "\n";
-                    Log.d("Gyroscope Sensor", data);
-                    gyroWriter.append(data);
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {
-        }
-    };
-
-
-//    private void addValue(ArrayList<Float> values, float newValue) {
-//        if (values.size() >= SMOOTHING_WINDOW_SIZE) {
-//            values.remove(0);
-//        }
-//        values.add(newValue);
-//    }
-//
-//    private float getAverage(ArrayList<Float> values) {
-//        float sum = 0;
-//        for (Float value : values) {
-//            sum += value;
-//        }
-//        return values.isEmpty()? 0 : sum/values.size();
-//    }
-//
-//    @Override
-//    public void onSensorChanged(SensorEvent event) {
-//        // Add the latest sensor values to the smoothing buffers
-//        addValue(xValues, event.values[0]);
-//        addValue(yValues, event.values[1]);
-//        addValue(zValues, event.values[2]);
-//
-//        // Calculate the average (smoothed) values
-//        float x = getAverage(xValues);
-//        float y = getAverage(yValues);
-//        float z = getAverage(zValues);
-//
-//        float deltaX = lastX - x;
-//        float deltaY = lastY - y;
-//        float deltaZ = lastZ - z;
-//
-//        long currentTime = System.currentTimeMillis();
-//        if (currentTime - lastGestureTime > GESTURE_DEBOUNCE_MS) {
-//            // Your gesture detection logic
-//            if (Math.abs(deltaX) > Math.abs(deltaY)) {
-//                if (Math.abs(deltaX) > 5) {
-//                    if (deltaX < 0) {
-//                        try {
-//                            displayMovement("RIGHT");
-//                        } catch (InterruptedException e) {
-//                            throw new RuntimeException(e);
-//                        }
-//                    } else {
-//                        try {
-//                            displayMovement("LEFT");
-//                        } catch (InterruptedException e) {
-//                            throw new RuntimeException(e);
-//                        }
-//                    }
-//                }
-//            } else {
-//                if (Math.abs(deltaY) > 5) {
-//                    if (deltaY < 0) {
-//                        try {
-//                            displayMovement("DOWN");
-//                        } catch (InterruptedException e) {
-//                            throw new RuntimeException(e);
-//                        }
-//                    } else {
-//                        try {
-//                            displayMovement("UP");
-//                        } catch (InterruptedException e) {
-//                            throw new RuntimeException(e);
-//                        }
-//                    }
-//                }
-//            }
-//
-//            lastGestureTime = currentTime;
-//        }
-//
-//        lastX = x;
-//        lastY = y;
-//        lastZ = z;
-//    }
-
     private void displayMovement(String movement) throws InterruptedException {
-
         movementTextView.setText(movement);
-
     }
-
 
 }
 

@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">My Application</string>
+    <string name="text_name">Move Your Hand</string>
+    <string name="button_name">Start/Stop</string>
 </resources>

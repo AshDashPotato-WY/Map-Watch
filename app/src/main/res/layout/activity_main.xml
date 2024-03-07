@@ -4,8 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:gravity="center"
+    android:orientation="vertical"
     android:padding="16dp"
     tools:context=".MainActivity">
 
@@ -13,7 +13,16 @@
         android:id="@+id/movementTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Move your phone"
-        android:textSize="24sp"
-        android:gravity="center" />
+
+        android:text="@string/text_name"
+        android:textSize="24sp" />
+
+    <Button
+        android:id="@+id/startButton"
+        android:layout_width="wrap_content"
+        android:layout_height="38dp"
+        android:onClick="onClick"
+        android:text="@string/button_name" />
+
+
 </LinearLayout>
