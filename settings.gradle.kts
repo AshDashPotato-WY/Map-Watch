@@ -10,12 +10,13 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven {
+            name = "ossrh-snapshot"
+            url = uri("https://oss.sonatype.org/content/repositories/snapshots")
+        }
     }
 }
 
 rootProject.name = "My Application"
 include(":app")
-include(":app:myapplication")
-include(":myapplication")
-include(":watchtophone")
-include(":watchToPhone2")
+
