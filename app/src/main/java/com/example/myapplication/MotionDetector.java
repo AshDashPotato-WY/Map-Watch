@@ -286,8 +286,11 @@ public class MotionDetector {
 
             // Creates inputs for reference.
             TensorBuffer inputFeature0 = TensorBuffer.createFixedSize(new int[]{1, 64, 3}, DataType.FLOAT32);
+
             ByteBuffer byteBuffer = ByteBuffer.allocateDirect(4 * GESTURE_SAMPLES * NUM_CHANNELS);
-            inputFeature0.loadArray(filteredData);
+            for (int i = 0; i < filteredData.length; i++) byteBuffer.putFloat(filteredData[i]);
+            inputFeature0.loadBuffer(byteBuffer); // previous value: filterData
+
 
             // Runs model inference and gets result.
             NewModel.Outputs outputs = model.process(inputFeature0);
